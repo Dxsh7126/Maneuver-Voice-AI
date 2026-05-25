@@ -310,6 +310,7 @@ Initial prototypes used Python Regex to extract lead data from transcripts in or
 People stutter, interrupt themselves, use filler words, and speak in fragments, for example:
 ```text
 "I run, well, it's a... logistics thing."
+```
 Regex-based extraction fails quickly on conversational speech because it depends on rigid sentence patterns and exact keyword matching.
 Upgrading to an LLM-driven `update_lead_info` tool leverages the model’s semantic understanding instead of pattern matching. This allows the system to accurately interpret messy, natural speech and reliably extract structured lead data in real time.
 
