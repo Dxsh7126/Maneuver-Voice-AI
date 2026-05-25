@@ -4,7 +4,7 @@ A real-time voice AI web application that lets visitors have a natural conversat
 with an AI agent representing Husain Topiwala, founder of Maneuver. The agent runs
 a discovery call, captures lead information live, scores leads by value, and routes
 high-priority prospects directly to Husain. The frontend reacts visually to the
-conversation in real time — cards and panels appear while the agent speaks.
+conversation in real time, cards and panels appear while the agent speaks.
 
 ---
 
@@ -19,14 +19,14 @@ conversation in real time — cards and panels appear while the agent speaks.
 ### Step 1 — Clone the repo
 
 ```bash
-git clone https://github.com/your-username/maneuver-voice-ai
+git clone https://github.com/Dxsh7126/Maneuver-Voice-AI
 cd maneuver-voice-ai
 ```
 
 ### Step 2 — Python agent
 
 ```bash
-cd agent-starter-python-main/src
+cd backend/src
 
 # Create and activate virtual environment
 python -m venv venv
@@ -66,7 +66,7 @@ INFO  livekit.agents  registered worker  {"url": "wss://..."}
 ### Step 3 — React frontend
 
 ```bash
-cd agent-starter-react-main
+cd frontend
 
 pnpm install
 
@@ -105,16 +105,15 @@ Open `http://localhost:3000`, click **Start Call**, grant mic permission.
 | **VAD** | Silero | built-in | Runs locally, zero latency, no API call for end-of-turn detection |
 | **STT** | Groq | `whisper-large-v3-turbo` | Groq's LPU hardware gives ~200ms transcription vs 800ms on standard cloud. Free tier. |
 | **LLM** | Groq | `llama-3.3-70b-versatile` | Strong tool calling, fast on Groq's LPUs, free tier. 70b handles complex conversation and multi-tool turns reliably. |
-| **TTS** | ElevenLabs | `eleven_turbo_v2_5` | Most natural-sounding voice at low latency. Daniel voice (`onwK4e9ZLuTAKqWW03F9`) — deep, professional, credible as a founder persona. |
+| **TTS** | Cartesia | `sonic-turbo` | Highly conversational and stable at ultra-low latency. Standard Public Voice (`a0e99841-438c-4a64-b679-ae501e7d6091`) — natural, professional, and avoids free-tier connection drops. |
 | **Real-time audio** | LiveKit | Cloud free tier | Handles WebRTC, turn detection, noise cancellation, and RPC between agent and browser. Required by assignment. |
-| **Framework** | LiveKit Agents | v1.5.x | Required. Provides the voice pipeline, function calling infrastructure, and session management. |
-| **Frontend** | Next.js + React | 15.x | Starter template provided. TypeScript throughout. |
+| **Framework** | LiveKit Agents | v1.5 | Required. Provides the voice pipeline, function calling infrastructure, and session management. |
+| **Frontend** | Next.js + React | 15 | Starter template provided. TypeScript throughout. |
 | **Notifications** | Gmail SMTP | — | Free. No third-party service needed for high-value lead email alerts. |
 
 **Why Groq over OpenAI for LLM:** Groq's LPU hardware produces tokens 5-10x faster than standard GPU inference. For voice conversations where every 100ms matters, this is the difference between a natural pause and an awkward silence. The free tier is also generous enough for development and demo.
 
-**Why ElevenLabs over Cartesia/Deepgram for TTS:** Deepgram Aura is optimised for low latency but sounds robotic on longer sentences. Cartesia Sonic-2 is conversational but has an audible breath artifact at sentence ends. ElevenLabs `eleven_turbo_v2_5` with Daniel's voice has the best balance of naturalness and latency for a "talk to founder" use case.
-
+**Why Cartesia over ElevenLabs/Deepgram for TTS:** Deepgram Aura is optimised for low latency but sounds robotic on longer sentences. ElevenLabs is highly natural but strictly limits free-tier WebSockets, often causing abrupt connection drops during live testing. Cartesia `sonic-turbo` provides the perfect middle ground: exceptional conversational pacing, natural breathing artifacts, and rock-solid WebSocket stability for uninterrupted demos.
 ---
 
 ## Architecture
@@ -160,21 +159,43 @@ If the user asks about Maneuver at any point — services, process, case studies
 
 ---
 
-## Lead capture
+# Lead Capture (LLM Multi-Tool Extraction)
 
-Every user transcript is processed by a Python regex extractor that runs independently of the LLM — zero extra tokens. Fields captured:
+Lead extraction is handled dynamically by Groq's `llama-3.3-70b-versatile` using a multi-parameter tool call (`update_lead_info`). This allows the LLM to use semantic understanding to parse messy human speech.
 
-| Field | Example trigger |
-|---|---|
-| `name` | "I'm John" / "My name is Sarah" |
-| `company` | "I run a logistics company" / "founder of HealthTech" |
-| `problem` | "struggling with dispatch" / "manual tracking is killing us" |
-| `timeline` | "three months" / "need to move asap" |
-| `budget` | "seed funded" / "bootstrapped" / "series A" |
+| Field     | Example Trigger |
+|------------|------------------|
+| `name`     | "Uhm, I'm John" |
+| `company`  | "Basically we run like... a logistics platform out in Dubai." |
+| `problem`  | "Manual tracking is an absolute nightmare." |
+| `timeline` | "We need to move by next quarter." |
+| `budget`   | "We just raised our seed round." |
 
-Fields write to `leads.json` immediately on capture — survives dropped calls. The React side panel updates live via RPC.
+## Self-Correction
 
-The LLM also has an `update_lead_field` tool for cases where it picks up nuanced information that regex misses.
+If the user changes their mind (e.g. *"Actually, change that to next month"*), the system prompt instructs the LLM to fire the tool again, overwriting the state.
+
+Fields write to `leads.json` immediately on capture to survive dropped calls, and the React side panel updates live via RPC.
+
+---
+
+# Lead Scoring and Routing
+
+Once the agent has `problem + company + (timeline or budget)`, it calls `close_call()` which scores the lead and routes accordingly:
+
+```text
+Score 7+  → HIGH   → immediate SMTP email to husain@maneuver.ae
+                   → UI shows HighValueClose: "Husain will reach out personally"
+
+Score 4-6 → MEDIUM → UI shows BookCall: Calendly link
+
+Score < 4 → LOW    → UI shows BookCall: Calendly link
+```
+
+This protects the founder's time by automating gatekeeping so only the highest-value leads get personal attention, while everyone else gets a frictionless booking flow.
+
+---
+
 
 **Sample captured output (`leads.json`):**
 ```json
@@ -213,27 +234,27 @@ This protects Husain's time — only the highest-value leads get his personal at
 
 ---
 
-## Synchronized visual layer
 
-The visual layer is the core bonus feature. When the LLM calls a visual tool, the card renders on screen while the agent is still speaking — not after.
+# Synchronized Visual Layer
 
-| User says | Tool called | Card rendered |
-|---|---|---|
-| "What services do you offer?" | `display_services()` | ServicesCard — all 5 services |
-| "Tell me about Voice AI" | `display_one_service("Voice AI")` | ServiceDetail — Voice AI |
-| "How does your process work?" | `display_process()` | ProcessCard — 3-step diagram |
-| Problem + company + timeline captured | `close_call()` | HighValueClose or BookCall |
+When the LLM calls a visual tool, the React frontend renders the corresponding component on screen while the agent is still speaking.
 
-The right side panel updates live as the user reveals information — name, company, problem, timeline, and budget fields fade in one by one during the conversation.
+| User Asks / States | Tool Called | UI Rendered |
+|---------------------|-------------|--------------|
+| "What services do you offer?" | `display_services()` | `ServicesCard` — 5 core offerings |
+| "Tell me about Voice AI" | `display_one_service("Voice AI")` | `ServiceDetail` — specific breakdown |
+| "How does your process work?" | `display_process()` | `ProcessCard` — 3-step diagram |
+| Agent captures multiple fields | `update_lead_info(...)` | Sidebar fields fade in |
+| Lead qualifies to close | `close_call()` | `HighValueClose` or `BookCall` |
 
----
+```
 
 ## File structure
 
 ```
 maneuver-voice-ai/
 │
-├── agent-starter-python-main/src/
+├── backend/src/
 │   ├── agent.py            # ManeuverAgent class, all tools, entrypoint
 │   ├── prompts.py          # System prompt — Husain's persona, goals, KB
 │   ├── scoring.py          # Lead scoring logic (HIGH/MEDIUM/LOW)
@@ -242,7 +263,7 @@ maneuver-voice-ai/
 │   ├── requirements.txt
 │   └── .env.example
 │
-└── agent-starter-react-main/
+└── frontend/
     ├── components/
     │   ├── app/
     │   │   └── view-controller.tsx   # Layout: welcome screen + connected layout
@@ -291,11 +312,14 @@ A "scheduling agent" that takes over after the discovery agent closes — handle
 **Why one agent class, not multi-agent handoff:**
 The discovery → close flow is linear enough that one agent with two modes (discovery + Q&A) handles it cleanly. A second agent would add latency at the handoff point with no user-visible benefit for a 5–8 minute call. This can be added later when the scheduling flow becomes complex enough to justify it.
 
-**Why Python regex for lead extraction, not LLM tool calls:**
-The LLM already has a full-time job — having a natural conversation. Asking it to also remember to call data-capture tools on every turn introduces a failure mode: smaller models miss tool calls, and every tool call consumes tokens. Python regex runs on every transcript in 0ms, uses zero tokens, and never fails silently. Structured data extraction belongs in deterministic code; reasoning belongs in the LLM.
+**Why LLM Extraction Instead of Python Regex:**
+Initial prototypes used Python Regex to extract lead data from transcripts in order to save LLM tokens. However, real humans on voice calls rarely speak in perfectly structured sentences.
+People stutter, interrupt themselves, use filler words, and speak in fragments, for example:
+```text
+"I run, well, it's a... logistics thing."
+Regex-based extraction fails quickly on conversational speech because it depends on rigid sentence patterns and exact keyword matching.
+Upgrading to an LLM-driven `update_lead_info` tool leverages the model’s semantic understanding instead of pattern matching. This allows the system to accurately interpret messy, natural speech and reliably extract structured lead data in real time.
 
 **Why Groq for both STT and LLM:**
 Same provider = one API key, one failure point, consistent sub-300ms latency for both. Groq's LPU hardware is the reason voice feels real-time. The alternative (Deepgram STT + OpenAI LLM) adds a second paid dependency and ~200ms of extra latency.
 
-**Why the session_ref pattern for tool speech:**
-LiveKit v1.5 tools don't have direct access to the session object at definition time. A mutable list (`session_ref`) is passed into the agent class and populated after the session is created. Tools then call `session_ref[0].say()` directly — guaranteed speech after every visual tool fires, regardless of what the LLM decides to do. This was necessary because smaller models (8b) would call a tool and go silent; the `session.say()` inside the tool ensures the conversation always continues.
