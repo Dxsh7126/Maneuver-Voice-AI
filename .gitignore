@@ -1,0 +1,16 @@
+# Security (CRITICAL)
+.env
+.env.local
+
+# Frontend Build & Dependencies
+node_modules/
+.next/
+.eslintcache
+
+# Backend Build, Dependencies & Data
+__pycache__/
+venv/
+leads.json
+
+# OS Junk
+.DS_Store
