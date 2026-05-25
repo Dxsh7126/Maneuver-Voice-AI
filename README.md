@@ -8,18 +8,6 @@ conversation in real time — cards and panels appear while the agent speaks.
 
 ---
 
-## Demo
-
-> Record your Loom here and paste the link
-
-**What to show in the demo (5 min max):**
-1. Full voice conversation — discovery flow from intro to close
-2. Visual layer reacting in real time (services card, process diagram, service detail)
-3. Side panel filling in live as the user reveals information
-4. 30-second architecture walkthrough
-
----
-
 ## How to run locally
 
 ### Prerequisites
