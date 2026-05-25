@@ -113,7 +113,7 @@ Open `http://localhost:3000`, click **Start Call**, grant mic permission.
 
 **Why Groq over OpenAI for LLM:** Groq's LPU hardware produces tokens 5-10x faster than standard GPU inference. For voice conversations where every 100ms matters, this is the difference between a natural pause and an awkward silence. The free tier is also generous enough for development and demo.
 
-**Why Cartesia over ElevenLabs/Deepgram for TTS:** Deepgram Aura is optimised for low latency but sounds robotic on longer sentences. ElevenLabs is highly natural but strictly limits free-tier WebSockets, often causing abrupt connection drops during live testing. Cartesia `sonic-turbo` provides the perfect middle ground: exceptional conversational pacing, natural breathing artifacts, and rock-solid WebSocket stability for uninterrupted demos.
+**Why Groq over OpenAI for LLM:** Groq's LPU hardware produces tokens 5-10x faster than standard GPU inference. For voice conversations where every 100ms matters, this is the difference between a natural pause and an awkward silence. The free tier is also generous enough for development and demo.
 ---
 
 ## Architecture
