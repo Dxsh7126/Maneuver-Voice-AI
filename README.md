@@ -251,38 +251,32 @@ When the LLM calls a visual tool, the React frontend renders the corresponding c
 
 ## File structure
 
-```
-maneuver-voice-ai/
+```text
+maneuver-voice-agent/
 │
-├── backend/src/
-│   ├── agent.py            # ManeuverAgent class, all tools, entrypoint
-│   ├── prompts.py          # System prompt — Husain's persona, goals, KB
-│   ├── scoring.py          # Lead scoring logic (HIGH/MEDIUM/LOW)
-│   ├── notifications.py    # Gmail SMTP — fires on HIGH tier leads
-│   ├── leads.json          # Sample captured lead from demo call
+├── backend/
+│   ├── src/
+│   │   ├── agent.py            # ManeuverAgent class, all tools, entrypoint
+│   │   ├── prompts.py          # System prompt — persona, constraints, KB
+│   │   ├── scoring.py          # Lead scoring logic (HIGH/MEDIUM/LOW)
+│   │   └── notifications.py    # Gmail SMTP — fires on HIGH tier leads
 │   ├── requirements.txt
 │   └── .env.example
 │
 └── frontend/
-    ├── components/
-    │   ├── app/
-    │   │   └── view-controller.tsx   # Layout: welcome screen + connected layout
-    │   └── agents-ui/
-    │       ├── AgentStatus.tsx       # Listening/Thinking/Speaking indicator
-    │       ├── DynamicPanel.tsx      # Routes uiState.type to correct card
-    │       ├── LeadPanel.tsx         # Live discovery capture sidebar
-    │       └── panels/
-    │           ├── ServicesCard.tsx
-    │           ├── ServiceDetail.tsx
-    │           ├── ProcessCard.tsx
-    │           ├── HighValueClose.tsx
-    │           ├── BookCall.tsx
-    │           └── SummaryCard.tsx
-    ├── hooks/agents-ui/
-    │   └── useAgentUI.ts     # RPC listeners, agent status mapping
+    ├── app/
+    │   └── components/
+    │       ├── view-controller.tsx   # Layout: welcome screen + connected layout
+    │       └── agents-ui/
+    │           ├── AgentStatus.tsx   # Listening/Thinking/Speaking visualizer
+    │           ├── DynamicPanel.tsx  # Routes uiState to correct card
+    │           ├── LeadPanel.tsx     # Live discovery capture sidebar
+    │           └── panels/           # Individual UI cards (Services, Process, etc.)
+    ├── hooks/
+    │   └── useAgentUI.ts         # RPC listeners, state management
+    ├── package.json
     └── .env.example
 ```
-
 ---
 
 ## What I'd build next with another week
